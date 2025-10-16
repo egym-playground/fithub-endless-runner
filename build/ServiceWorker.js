@@ -1,9 +1,9 @@
 const cacheName = "DefaultCompany-EndlessPlayer-0.1";
 const contentToCache = [
-    "Build/web_build.loader.js",
-    "Build/web_build.framework.js.unityweb",
-    "Build/web_build.data.unityweb",
-    "Build/web_build.wasm.unityweb",
+    "Build/build.loader.js",
+    "Build/build.framework.js.unityweb",
+    "Build/build.data.unityweb",
+    "Build/build.wasm.unityweb",
     "TemplateData/style.css"
 
 ];
