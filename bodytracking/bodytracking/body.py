@@ -8,6 +8,7 @@ import global_vars
 import struct
 import cv2
 from bodytracking.rendering import render_results
+from websocket_server import WebSocketServer
 
 
 class CaptureThread(threading.Thread):
@@ -63,23 +64,41 @@ class BodyThread(threading.Thread):
     data = ""
     pipe = None
     timeSinceCheckedConnection = 0
+    websocket_server = None
 
     # YOLO-Pose uses 17 keypoints (COCO format) vs MediaPipe's 33
     # Mapping YOLO keypoints to match Unity expectations
     YOLO_KEYPOINT_NAMES = [
-        'nose', 'left_eye', 'right_eye', 'left_ear', 'right_ear',
-        'left_shoulder', 'right_shoulder', 'left_elbow', 'right_elbow',
-        'left_wrist', 'right_wrist', 'left_hip', 'right_hip',
-        'left_knee', 'right_knee', 'left_ankle', 'right_ankle'
+        "nose",
+        "left_eye",
+        "right_eye",
+        "left_ear",
+        "right_ear",
+        "left_shoulder",
+        "right_shoulder",
+        "left_elbow",
+        "right_elbow",
+        "left_wrist",
+        "right_wrist",
+        "left_hip",
+        "right_hip",
+        "left_knee",
+        "right_knee",
+        "left_ankle",
+        "right_ankle",
     ]
 
     def run(self):
         # Load YOLOv8-pose model (it will download on first run)
-        model = YOLO('yolov8n-pose.pt')  # Use 'yolov8s-pose.pt' or 'yolov8m-pose.pt' for better accuracy
+        model = YOLO("yolov8n-pose.pt")  # Use 'yolov8s-pose.pt' or 'yolov8m-pose.pt' for better accuracy
 
         # Enable GPU if available
-        device = 'cuda:0' if global_vars.USE_GPU else 'cpu'
+        device = "cuda:0" if global_vars.USE_GPU else "cpu"
         model.to(device)
+
+        # Start WebSocket server
+        self.websocket_server = WebSocketServer()
+        self.websocket_server.start()
 
         capture = CaptureThread()
         capture.start()
@@ -95,22 +114,23 @@ class BodyThread(threading.Thread):
             ret = capture.ret
             image = capture.frame
 
-
             # YOLOv8 inference
             # data = np.asanyarray(frame.get_data())
             # image = data.reshape((global_vars.HEIGHT, global_vars.WIDTH, 3))
             if image is None:
-                 continue
+                continue
             results = model(image, verbose=False, device=device)
 
             # Rendering results
             render_results(ti, results)
 
             # TODO evaluate direction
-            # TODO pipe output / direction
+
+            self.websocket_server.notify_new_frame("jump")
+
             if self.pipe is None and time.time() - self.timeSinceCheckedConnection >= 1:
                 try:
-                    self.pipe = open(r'\\.\pipe\UnityMediaPipeBody', 'r+b', 0)
+                    self.pipe = open(r"\\.\pipe\UnityMediaPipeBody", "r+b", 0)
                 except FileNotFoundError:
                     print("Waiting for Unity project to run...")
                     self.pipe = None
@@ -135,13 +155,11 @@ class BodyThread(threading.Thread):
                                 y_norm = (xy[i][1] / image.shape[0]) - 0.5
                                 z_norm = 0  # No depth from single camera
 
-                                self.data += "ANCHORED|{}|{}|{}|{}\n".format(
-                                    i, x_norm, y_norm, z_norm
-                                )
+                                self.data += "ANCHORED|{}|{}|{}|{}\n".format(i, x_norm, y_norm, z_norm)
 
-                s = self.data.encode('utf-8')
+                s = self.data.encode("utf-8")
                 try:
-                    self.pipe.write(struct.pack('I', len(s)) + s)
+                    self.pipe.write(struct.pack("I", len(s)) + s)
                     self.pipe.seek(0)
                 except Exception:
                     print("Failed to write to pipe. Is the unity project open?")

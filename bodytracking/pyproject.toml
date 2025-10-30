@@ -11,6 +11,7 @@ dependencies = [
     "pyorbbecsdk2 (>=2.0.15,<3.0.0)",
     "opencv-python (>=4.12.0.88,<5.0.0.0)",
     "ultralytics (>=8.3.222,<9.0.0)",
+    "websockets (>=12.0,<13.0.0)",
 ]
 
 
