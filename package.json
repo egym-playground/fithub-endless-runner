@@ -1,0 +1,15 @@
+{
+  "name": "fithub-websocket-server",
+  "version": "1.0.0",
+  "description": "WebSocket server for FitHub Endless Runner Unity game",
+  "main": "websocket-server.js",
+  "scripts": {
+    "start": "node websocket-server.js"
+  },
+  "dependencies": {
+    "ws": "^8.14.2"
+  },
+  "keywords": ["websocket", "unity", "game", "fithub"],
+  "author": "FitHub",
+  "license": "MIT"
+}

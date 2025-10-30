@@ -1,7 +1,8 @@
-﻿using System.Collections;
+using System.Collections;
 using UnityEngine;
 
-public class Player : MonoBehaviour {
+public class Player : MonoBehaviour
+{
 
     public GameObject model;
     public float runSpeed = 10f;
@@ -31,7 +32,8 @@ public class Player : MonoBehaviour {
     private int coins;
     private float score;
 
-    void Start() {
+    void Start()
+    {
         rb = GetComponent<Rigidbody>();
         animator = GetComponent<Animator>();
         uiManager = FindObjectOfType<UIManager>();
@@ -40,21 +42,25 @@ public class Player : MonoBehaviour {
         animator.Play("runStart");
     }
 
-    void Update() {
+    void Update()
+    {
         HandleScore();
         MoveCharacter();
     }
 
-    void FixedUpdate() {
+    void FixedUpdate()
+    {
         rb.linearVelocity = Vector3.forward * runSpeed;
     }
 
-    void HandleScore() {
+    void HandleScore()
+    {
         score += Time.deltaTime * runSpeed;
-        uiManager.UpdateScore((int) score);
+        uiManager.UpdateScore((int)score);
     }
 
-    void MoveCharacter() {
+    void MoveCharacter()
+    {
         HandleKeyboard();
         HandleTouch();
         HandleJump();
@@ -64,65 +70,82 @@ public class Player : MonoBehaviour {
         transform.localPosition = Vector3.MoveTowards(transform.position, newPosition, laneChangeSpeed * Time.deltaTime);
     }
 
-    void HandleKeyboard() {
+    void HandleKeyboard()
+    {
         if (Input.GetKeyDown(KeyCode.LeftArrow)) ChangeLane(-1);
         else if (Input.GetKeyDown(KeyCode.RightArrow)) ChangeLane(1);
         else if (Input.GetKeyDown(KeyCode.UpArrow)) Jump();
-        else if (Input.GetKeyDown(KeyCode.DownArrow)) Slide(); 
+        else if (Input.GetKeyDown(KeyCode.DownArrow)) Slide();
     }
 
-    void HandleTouch() {
-        if (Input.touchCount == 1) {
-            if (isSwiping) {
+    void HandleTouch()
+    {
+        if (Input.touchCount == 1)
+        {
+            if (isSwiping)
+            {
                 Vector2 diff = Input.GetTouch(0).position - startingTouch;
                 diff = new Vector2(diff.x / Screen.width, diff.y / Screen.width);
-                
-                if (diff.magnitude > 0.01f) {
-                    if (Mathf.Abs(diff.y) > Mathf.Abs(diff.x)) {
+
+                if (diff.magnitude > 0.01f)
+                {
+                    if (Mathf.Abs(diff.y) > Mathf.Abs(diff.x))
+                    {
                         HandleVerticalSwiping(diff.y);
-                    } else {
+                    }
+                    else
+                    {
                         HandleHorizontalSwipping(diff.x);
                     }
 
                     isSwiping = false;
                 }
             }
-      
+
             validateSwiping();
         }
     }
 
-    void HandleVerticalSwiping(float diffY) {
+    void HandleVerticalSwiping(float diffY)
+    {
         if (diffY < 0) Slide();
         else Jump();
     }
 
-    void HandleHorizontalSwipping(float diffX) {
+    void HandleHorizontalSwipping(float diffX)
+    {
         if (diffX < 0) ChangeLane(-1);
         else ChangeLane(1);
     }
 
-    void validateSwiping() {
-        if (Input.GetTouch(0).phase == TouchPhase.Began) {
+    void validateSwiping()
+    {
+        if (Input.GetTouch(0).phase == TouchPhase.Began)
+        {
             startingTouch = Input.GetTouch(0).position;
             isSwiping = true;
         }
 
-        if (Input.GetTouch(0).phase == TouchPhase.Ended) {
+        if (Input.GetTouch(0).phase == TouchPhase.Ended)
+        {
             isSwiping = false;
         }
     }
 
-    void ChangeLane(int direction) {
+    public void ChangeLane(int direction)
+    {
         float targetLane = targetPosition.x + direction;
 
-        if (targetLane >= -1f && targetLane <= 1f) {
+        if (targetLane >= -1f && targetLane <= 1f)
+        {
             targetPosition.x = targetLane;
         }
     }
 
-    void Jump() {
-        if (!isJumping) {
+    public void Jump()
+    {
+        if (!isJumping)
+        {
             isJumping = true;
             jumpStart = transform.position.z;
             animator.SetBool("Jumping", true);
@@ -130,23 +153,32 @@ public class Player : MonoBehaviour {
         }
     }
 
-    void HandleJump() {
-        if (isJumping && !isSliding) {
+    void HandleJump()
+    {
+        if (isJumping && !isSliding)
+        {
             float ratio = (transform.position.z - jumpStart) / jumpLength;
 
-            if (ratio >= 1) {
+            if (ratio >= 1)
+            {
                 isJumping = false;
                 animator.SetBool("Jumping", false);
-            } else {
+            }
+            else
+            {
                 targetPosition.y = Mathf.Sin(ratio * Mathf.PI) * jumpHeight;
             }
-        } else {
+        }
+        else
+        {
             targetPosition.y = Mathf.MoveTowards(targetPosition.y, 0, jumpSpeed * Time.deltaTime);
         }
     }
 
-    void Slide() {
-        if (!isJumping && !isSliding) {
+    public void Slide()
+    {
+        if (!isJumping && !isSliding)
+        {
             isSliding = true;
             slideStart = transform.position.z;
             boxCollider.size /= 2;
@@ -155,44 +187,54 @@ public class Player : MonoBehaviour {
         }
     }
 
-    void HandleSlide() {
-        if (isSliding) {
+    void HandleSlide()
+    {
+        if (isSliding)
+        {
             float ratio = (transform.position.z - slideStart) / slideLength;
 
-            if (ratio >= 1) {
+            if (ratio >= 1)
+            {
                 isSliding = false;
                 boxCollider.size = boxColliderSize;
                 animator.SetBool("Sliding", false);
             }
-        } 
+        }
     }
 
-    void OnTriggerEnter(Collider other) {
-       if (other.CompareTag("Coin")) GetCoins(other);
-       if (!isInvisible && other.CompareTag("Obstacle")) HitObstacles();
+    void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Coin")) GetCoins(other);
+        if (!isInvisible && other.CompareTag("Obstacle")) HitObstacles();
     }
 
-    void GetCoins(Collider other) {
+    void GetCoins(Collider other)
+    {
         coins++;
         uiManager.UpdateCoins(coins);
         other.gameObject.SetActive(false);
     }
 
-    void HitObstacles() {
+    void HitObstacles()
+    {
         currentLives--;
         uiManager.UpdateLives(currentLives);
         animator.SetTrigger("Hit");
 
-        if (currentLives <= 0) {
+        if (currentLives <= 0)
+        {
             runSpeed = 0;
             animator.SetBool("Dead", true);
             // Call gameover
-        } else {
+        }
+        else
+        {
             StartCoroutine(Blinking());
         }
     }
 
-    IEnumerator Blinking() {
+    IEnumerator Blinking()
+    {
         float timer = 0;
         float currentBlink = 1f;
         float lastBlink = 0;
@@ -202,13 +244,15 @@ public class Player : MonoBehaviour {
         yield return new WaitForSeconds(0.5f);
         runSpeed = minSpeed;
 
-        while (timer < invisibleTime && isInvisible) {
+        while (timer < invisibleTime && isInvisible)
+        {
             model.SetActive(enabled);
             yield return null;
             timer += Time.deltaTime;
             lastBlink += Time.deltaTime;
 
-            if (blinkPeriod < lastBlink) {
+            if (blinkPeriod < lastBlink)
+            {
                 lastBlink = 0;
                 currentBlink = 1f - currentBlink;
                 enabled = !enabled;
@@ -219,7 +263,8 @@ public class Player : MonoBehaviour {
         isInvisible = false;
     }
 
-    public void IncreaseSpeed() {
+    public void IncreaseSpeed()
+    {
         runSpeed *= 1.15f;
         runSpeed = (runSpeed >= maxSpeed) ? maxSpeed : runSpeed;
     }
