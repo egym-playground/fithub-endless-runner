@@ -1,0 +1,19 @@
+[project]
+name = "bodytracking"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Nawal Hafez",email = "nawal.hafez@egym.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pyorbbecsdk2 (>=2.0.15,<3.0.0)",
+    "opencv-python (>=4.12.0.88,<5.0.0.0)",
+    "ultralytics (>=8.3.222,<9.0.0)",
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
