@@ -14,6 +14,7 @@ public class Player : MonoBehaviour
     public float slideLength = 10f;
     public float jumpHeight = 1f;
     public float invisibleTime = 5f;
+    public bool isGameOver = false;
 
     private Animator animator;
     private Rigidbody rb;
@@ -27,7 +28,6 @@ public class Player : MonoBehaviour
     private bool isJumping = false;
     private bool isSliding = false;
     private bool isInvisible = false;
-    private bool isGameOver = false;
     private float jumpStart;
     private float slideStart;
     private int currentLives = 3;
@@ -224,7 +224,7 @@ public class Player : MonoBehaviour
     void HitObstacles()
     {
         if (isGameOver) return;
-        
+
         currentLives--;
         Debug.Log($"Player hit obstacle! Lives remaining: {currentLives}");
         uiManager.UpdateLives(currentLives);
@@ -283,12 +283,12 @@ public class Player : MonoBehaviour
     IEnumerator GameOver()
     {
         Debug.Log("GameOver coroutine started! Waiting 2 seconds for death animation...");
-        
+
         // Wait for death animation to play
         yield return new WaitForSeconds(2f);
-        
+
         Debug.Log("Death animation finished. Attempting to show Game Over UI...");
-        
+
         // Show game over UI - try both UIManager and GameOverMenu
         if (gameOverMenu != null)
         {

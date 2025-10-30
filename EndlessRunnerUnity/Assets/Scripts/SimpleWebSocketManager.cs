@@ -220,8 +220,11 @@ public class SimpleWebSocketManager : MonoBehaviour
                 Log("⬇️ Slide executed");
                 break;
             case "start":
-                SceneManager.LoadScene("Main");
-                Log("Start Game");
+                if (player == null || (player != null && player.isGameOver))
+                {
+                    SceneManager.LoadScene("Main");
+                    Log("Start Game");
+                }
                 break;
             default:
                 LogError($"❓ Unknown command: {command}");
