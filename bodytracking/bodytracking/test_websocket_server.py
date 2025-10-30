@@ -20,16 +20,14 @@ def main():
     print("Server started. Waiting 2 seconds...")
     time.sleep(2)
 
-    print("Sending test notifications...")
-    for i in range(5):
-        print(f"Sending notification {i+1}")
-        server.notify_new_frame()
-        time.sleep(1)
-
-    print("Test complete. Press Ctrl+C to exit.")
+    print("Sending continuous notifications... Press Ctrl+C to stop.")
 
     try:
+        counter = 0
         while True:
+            counter += 1
+            print(f"Sending notification {counter}: jump")
+            server.notify_new_frame("jump")
             time.sleep(1)
     except KeyboardInterrupt:
         print("\nShutting down...")
