@@ -7,6 +7,7 @@ import time
 import global_vars
 import struct
 import cv2
+from bodytracking.rendering import render_results
 
 
 class CaptureThread(threading.Thread):
@@ -62,7 +63,6 @@ class BodyThread(threading.Thread):
     data = ""
     pipe = None
     timeSinceCheckedConnection = 0
-    timeSincePostStatistics = 0
 
     # YOLO-Pose uses 17 keypoints (COCO format) vs MediaPipe's 33
     # Mapping YOLO keypoints to match Unity expectations
@@ -96,27 +96,19 @@ class BodyThread(threading.Thread):
             image = capture.frame
 
 
-
             # YOLOv8 inference
             # data = np.asanyarray(frame.get_data())
             # image = data.reshape((global_vars.HEIGHT, global_vars.WIDTH, 3))
             if image is None:
                  continue
             results = model(image, verbose=False, device=device)
-            tf = time.time()
 
             # Rendering results
-            if global_vars.DEBUG:
-                if time.time() - self.timeSincePostStatistics >= 1:
-                    print("Theoretical Maximum FPS: %f" % (1 / (tf - ti)))
-                    self.timeSincePostStatistics = time.time()
+            render_results(ti, results)
 
-                # Draw keypoints on image
-                annotated_frame = results[0].plot()
-                cv2.imshow('Body Tracking', annotated_frame)
-                cv2.waitKey(1)
-
-            if self.pipe == None and time.time() - self.timeSinceCheckedConnection >= 1:
+            # TODO evaluate direction
+            # TODO pipe output / direction
+            if self.pipe is None and time.time() - self.timeSinceCheckedConnection >= 1:
                 try:
                     self.pipe = open(r'\\.\pipe\UnityMediaPipeBody', 'r+b', 0)
                 except FileNotFoundError:
@@ -124,7 +116,7 @@ class BodyThread(threading.Thread):
                     self.pipe = None
                 self.timeSinceCheckedConnection = time.time()
 
-            if self.pipe != None:
+            if self.pipe is not None:
                 self.data = ""
 
                 # Extract keypoints from YOLOv8 results
@@ -151,7 +143,7 @@ class BodyThread(threading.Thread):
                 try:
                     self.pipe.write(struct.pack('I', len(s)) + s)
                     self.pipe.seek(0)
-                except Exception as ex:
+                except Exception:
                     print("Failed to write to pipe. Is the unity project open?")
                     self.pipe = None
 
