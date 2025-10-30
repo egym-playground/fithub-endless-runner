@@ -121,7 +121,7 @@ class BodyThread(threading.Thread):
             results = model(image, verbose=False, device=device)
 
             # TODO evaluate direction
-            directions = evaluate_directions(results ,image.shape)
+            directions = evaluate_directions(results)
 
             render_results(ti, results, directions)
 

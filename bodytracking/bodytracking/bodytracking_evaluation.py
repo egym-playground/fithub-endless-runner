@@ -1,21 +1,30 @@
 import numpy as np
 from bodytracking import global_vars
 
+
 class DirectionEvaluator:
     def __init__(self):
         # Store previous positions for movement detection
 
         # Thresholds (normalized coordinates, range approximately -0.5 to 0.5)
         self.HORIZONTAL_THRESHOLD = 200  # Movement threshold for left/right
-        self.VERTICAL_JUMP_THRESHOLD = 80  # Upward movement threshold
+        self.VERTICAL_JUMP_VELOCITY = 15  # Minimum upward velocity (pixels/frame)
+        self.JUMP_COOLDOWN_FRAMES = 10  # Frames to wait before detecting another jump
         self.SQUAT_THRESHOLD = 200  # Hip-to-shoulder ratio change for squat
         self.MIN_CONFIDENCE = global_vars.PERSON_MINIMUM_THRESHOLD  # Minimum detection confidence
-        self.START_THRESHOLD = 50  # Minimum distance wrists must be above shoulders
+        self.START_THRESHOLD = 200  # Minimum distance wrists must be above shoulders
 
         # Smoothing window
         self.position_history = []
         self.history_size = 3
         self.previous_direction = None
+        self.previous_avg_hip = None
+
+        # Jump detection state
+        self.jump_cooldown = 0
+        self.baseline_hip_y = None  # Store resting hip height
+        self.baseline_frames = []
+        self.baseline_window = 30  # Frames to establish baseline
 
     @staticmethod
     def _get_keypoint(keypoints, index):
@@ -96,12 +105,53 @@ class DirectionEvaluator:
 
         return left_above and right_above
 
-    def _detect_jump(self, avg_hip):
-        """Detect upward jump based on hip vertical movement."""
+    def _detect_jump(self, current_hip):
+        """
+        Detect jump using velocity-based approach with baseline comparison.
 
+        A jump is detected when:
+        1. Hip moves upward faster than threshold velocity
+        2. Hip is significantly above the established baseline
+        3. Cooldown period has passed
+        """
+        if self.jump_cooldown > 0:
+            self.jump_cooldown -= 1
+            return False
 
-        vertical_delta = global_vars.HEIGHT/2 - avg_hip[1]  # Y increases downward
-        return vertical_delta > self.VERTICAL_JUMP_THRESHOLD
+        # Establish baseline (resting hip height)
+        self.baseline_frames.append(current_hip[1])
+        if len(self.baseline_frames) > self.baseline_window:
+            self.baseline_frames.pop(0)
+
+        if len(self.baseline_frames) >= 5:  # Need minimum frames for baseline
+            self.baseline_hip_y = np.median(self.baseline_frames)  # Use median to ignore outliers
+        else:
+            return False
+
+        # Calculate velocity (change in Y position)
+        if self.previous_avg_hip is None:
+            self.previous_avg_hip = current_hip
+            return False
+
+        vertical_velocity = self.previous_avg_hip[1] - current_hip[1]  # Positive = moving up
+
+        # Distance from baseline
+        distance_from_baseline = self.baseline_hip_y - current_hip[1]
+
+        # Detect jump: fast upward movement AND significantly above baseline
+        is_jumping = (
+                vertical_velocity > self.VERTICAL_JUMP_VELOCITY and
+                distance_from_baseline > 50  # Must be at least 50 pixels above baseline
+        )
+
+        if is_jumping:
+            self.jump_cooldown = self.JUMP_COOLDOWN_FRAMES
+            # Reset baseline after jump to adapt to new position
+            self.baseline_frames = []
+
+        self.previous_avg_hip = current_hip.copy()
+
+        return is_jumping
 
     def _detect_squat(self, avg_hip, avg_shoulder):
         """Detect squat based on hip-to-shoulder distance reduction."""
@@ -114,7 +164,7 @@ class DirectionEvaluator:
         """Reset position history."""
         self.position_history = []
 
-    def evaluate(self, results, image_shape):
+    def evaluate(self, results):
         """
         Evaluate movement direction based on pose keypoints.
 
@@ -125,7 +175,8 @@ class DirectionEvaluator:
             'left': False,
             'right': False,
             'jump': False,
-            'slide': False
+            'slide': False,
+            'start': False
         }
 
         if len(results[0].keypoints) == 0:
@@ -160,6 +211,11 @@ class DirectionEvaluator:
         if hip_center is None or shoulder_center is None:
             return directions
 
+        # if not self.position_history:
+        #     self.previous_avg_hip = np.mean([p['hip'] for p in self.position_history], axis=0)
+        # else:
+        #     return directions
+
         # Smooth position using history
         self.position_history.append({
             'hip': hip_center,
@@ -178,7 +234,7 @@ class DirectionEvaluator:
             directions['left'] = moved_left
             directions['right'] = moved_right
 
-        directions['jump'] = self._detect_jump(avg_hip)
+        directions['jump'] = self._detect_jump(hip_center)
         directions['slide'] = self._detect_squat(avg_hip, avg_shoulder)
         directions['start'] = self._detect_start(left_wrist, right_wrist, left_shoulder, right_shoulder)
 
@@ -204,7 +260,7 @@ class DirectionEvaluator:
 _evaluator = DirectionEvaluator()
 
 
-def evaluate_directions(results, image_shape):
+def evaluate_directions(results):
     """
     Evaluate movement directions from YOLO pose results.
 
@@ -215,4 +271,4 @@ def evaluate_directions(results, image_shape):
     Returns:
         dict: Direction flags {'left': bool, 'right': bool, 'jump': bool, 'slide': bool}
     """
-    return _evaluator.evaluate(results, image_shape)
+    return _evaluator.evaluate(results)
