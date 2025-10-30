@@ -128,44 +128,5 @@ class BodyThread(threading.Thread):
 
             self.websocket_server.notify_new_frame("jump")
 
-            if self.pipe is None and time.time() - self.timeSinceCheckedConnection >= 1:
-                try:
-                    self.pipe = open(r"\\.\pipe\UnityMediaPipeBody", "r+b", 0)
-                except FileNotFoundError:
-                    print("Waiting for Unity project to run...")
-                    self.pipe = None
-                self.timeSinceCheckedConnection = time.time()
-
-            if self.pipe is not None:
-                self.data = ""
-
-                # Extract keypoints from YOLOv8 results
-                if len(results[0].keypoints) > 0:
-                    keypoints = results[0].keypoints[0]  # Get first person
-
-                    if keypoints.xy is not None:
-                        xy = keypoints.xy.cpu().numpy()  # 2D coordinates (x, y)
-                        conf = keypoints.conf.cpu().numpy()  # Confidence scores
-
-                        # YOLOv8 doesn't provide world coordinates directly
-                        # Send 2D normalized coordinates
-                        for i in range(len(xy)):
-                            if conf[i] > 0.5:  # Confidence threshold
-                                x_norm = (xy[i][0] / image.shape[1]) - 0.5
-                                y_norm = (xy[i][1] / image.shape[0]) - 0.5
-                                z_norm = 0  # No depth from single camera
-
-                                self.data += "ANCHORED|{}|{}|{}|{}\n".format(i, x_norm, y_norm, z_norm)
-
-                s = self.data.encode("utf-8")
-                try:
-                    self.pipe.write(struct.pack("I", len(s)) + s)
-                    self.pipe.seek(0)
-                except Exception:
-                    print("Failed to write to pipe. Is the unity project open?")
-                    self.pipe = None
-
-        if self.pipe:
-            self.pipe.close()
         if global_vars.DEBUG:
             cv2.destroyAllWindows()
