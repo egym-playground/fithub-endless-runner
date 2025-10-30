@@ -10,6 +10,7 @@ class DirectionEvaluator:
         self.VERTICAL_JUMP_THRESHOLD = 80  # Upward movement threshold
         self.SQUAT_THRESHOLD = 200  # Hip-to-shoulder ratio change for squat
         self.MIN_CONFIDENCE = global_vars.PERSON_MINIMUM_THRESHOLD  # Minimum detection confidence
+        self.START_THRESHOLD = 50  # Minimum distance wrists must be above shoulders
 
         # Smoothing window
         self.position_history = []
@@ -80,6 +81,21 @@ class DirectionEvaluator:
 
         return moved_left, moved_right
 
+
+    def _detect_start(self, left_wrist, right_wrist, left_shoulder, right_shoulder):
+        """Detect start gesture when both wrists are above shoulders by threshold."""
+        if left_wrist is None or right_wrist is None or left_shoulder is None or right_shoulder is None:
+            return False
+
+        # Check if both wrists are above their respective shoulders by at least threshold (Y increases downward)
+        left_distance = left_shoulder[1] - left_wrist[1]
+        right_distance = right_shoulder[1] - right_wrist[1]
+
+        left_above = left_distance > self.START_THRESHOLD
+        right_above = right_distance > self.START_THRESHOLD
+
+        return left_above and right_above
+
     def _detect_jump(self, avg_hip):
         """Detect upward jump based on hip vertical movement."""
 
@@ -131,6 +147,8 @@ class DirectionEvaluator:
         right_hip = self._get_keypoint(keypoints, 12)
         left_shoulder = self._get_keypoint(keypoints, 5)
         right_shoulder = self._get_keypoint(keypoints, 6)
+        left_wrist = self._get_keypoint(keypoints, 9)
+        right_wrist = self._get_keypoint(keypoints, 10)
 
         if left_hip is None or right_hip is None or left_shoulder is None or right_shoulder is None:
             return directions
@@ -162,6 +180,7 @@ class DirectionEvaluator:
 
         directions['jump'] = self._detect_jump(avg_hip)
         directions['slide'] = self._detect_squat(avg_hip, avg_shoulder)
+        directions['start'] = self._detect_start(left_wrist, right_wrist, left_shoulder, right_shoulder)
 
         new_directions = {}
         for direction_name, is_active in directions.items():

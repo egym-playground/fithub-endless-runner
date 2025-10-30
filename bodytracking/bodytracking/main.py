@@ -6,11 +6,12 @@ import global_vars
 from sys import exit
 
 
-thread = BodyThread()
-thread.start()
+try:
+    thread = BodyThread()
+    thread.start()
+# make this react to keyboard interruptions
+except KeyboardInterrupt:
 
-i = input()
-print("Exiting…")        
-global_vars.KILL_THREADS = True
-time.sleep(0.5)
-exit()
+    global_vars.KILL_THREADS = True
+    time.sleep(0.5)
+    exit()
