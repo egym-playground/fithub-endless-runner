@@ -10,6 +10,7 @@ import cv2
 from bodytracking.rendering import render_results
 from websocket_server import WebSocketServer
 
+from bodytracking.bodytracking_evaluation import evaluate_directions
 
 class CaptureThread(threading.Thread):
     pipeline = None
@@ -53,7 +54,7 @@ class CaptureThread(threading.Thread):
             if global_vars.DEBUG:
                 self.counter += 1
                 if time.time() - self.timer >= 3:
-                    print("Capture FPS: ", self.counter / (time.time() - self.timer))
+                    # print("Capture FPS: ", self.counter / (time.time() - self.timer))
                     self.counter = 0
                     self.timer = time.time()
 
@@ -90,10 +91,10 @@ class BodyThread(threading.Thread):
 
     def run(self):
         # Load YOLOv8-pose model (it will download on first run)
-        model = YOLO("yolov8n-pose.pt")  # Use 'yolov8s-pose.pt' or 'yolov8m-pose.pt' for better accuracy
+        model = YOLO('yolov8n-pose.pt')  # Use 'yolov8s-pose.pt' or 'yolov8m-pose.pt' for better accuracy
 
         # Enable GPU if available
-        device = "cuda:0" if global_vars.USE_GPU else "cpu"
+        device = 'cuda:0' if global_vars.USE_GPU else 'cpu'
         model.to(device)
 
         # Start WebSocket server
@@ -114,17 +115,21 @@ class BodyThread(threading.Thread):
             ret = capture.ret
             image = capture.frame
 
-            # YOLOv8 inference
-            # data = np.asanyarray(frame.get_data())
-            # image = data.reshape((global_vars.HEIGHT, global_vars.WIDTH, 3))
             if image is None:
-                continue
+                 continue
+
             results = model(image, verbose=False, device=device)
 
             # Rendering results
-            render_results(ti, results)
+            # render_results(ti, results)
 
             # TODO evaluate direction
+            directions = evaluate_directions(results ,image.shape)
+
+            render_results(ti, results, directions)
+
+            if self.pipe is not None:
+                self.data = ""
 
             self.websocket_server.notify_new_frame("jump")
 

@@ -42,7 +42,7 @@ class WebSocketServer:
             self.clients.discard(websocket)
 
     def notify_new_frame(self, direction):
-        print("push socket update")
+        # print("push socket update")
         if self.loop and self.clients:
             asyncio.run_coroutine_threadsafe(self._broadcast(direction), self.loop)
 
