@@ -18,6 +18,7 @@ public class Player : MonoBehaviour
     private Animator animator;
     private Rigidbody rb;
     private UIManager uiManager;
+    private GameOverMenu gameOverMenu;
     private BoxCollider boxCollider;
     private Vector3 targetPosition;
     private Vector3 boxColliderSize;
@@ -26,6 +27,7 @@ public class Player : MonoBehaviour
     private bool isJumping = false;
     private bool isSliding = false;
     private bool isInvisible = false;
+    private bool isGameOver = false;
     private float jumpStart;
     private float slideStart;
     private int currentLives = 3;
@@ -37,6 +39,7 @@ public class Player : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         animator = GetComponent<Animator>();
         uiManager = FindObjectOfType<UIManager>();
+        gameOverMenu = FindObjectOfType<GameOverMenu>();
         boxCollider = GetComponent<BoxCollider>();
         boxColliderSize = boxCollider.size;
         animator.Play("runStart");
@@ -44,8 +47,11 @@ public class Player : MonoBehaviour
 
     void Update()
     {
-        HandleScore();
-        MoveCharacter();
+        if (!isGameOver)
+        {
+            HandleScore();
+            MoveCharacter();
+        }
     }
 
     void FixedUpdate()
@@ -217,15 +223,20 @@ public class Player : MonoBehaviour
 
     void HitObstacles()
     {
+        if (isGameOver) return;
+        
         currentLives--;
+        Debug.Log($"Player hit obstacle! Lives remaining: {currentLives}");
         uiManager.UpdateLives(currentLives);
         animator.SetTrigger("Hit");
 
         if (currentLives <= 0)
         {
+            Debug.Log("GAME OVER! Player has no lives left!");
+            isGameOver = true;
             runSpeed = 0;
             animator.SetBool("Dead", true);
-            // Call gameover
+            StartCoroutine(GameOver());
         }
         else
         {
@@ -267,5 +278,31 @@ public class Player : MonoBehaviour
     {
         runSpeed *= 1.15f;
         runSpeed = (runSpeed >= maxSpeed) ? maxSpeed : runSpeed;
+    }
+
+    IEnumerator GameOver()
+    {
+        Debug.Log("GameOver coroutine started! Waiting 2 seconds for death animation...");
+        
+        // Wait for death animation to play
+        yield return new WaitForSeconds(2f);
+        
+        Debug.Log("Death animation finished. Attempting to show Game Over UI...");
+        
+        // Show game over UI - try both UIManager and GameOverMenu
+        if (gameOverMenu != null)
+        {
+            Debug.Log("Using GameOverMenu to show game over");
+            gameOverMenu.ShowGameOver((int)score, coins);
+        }
+        else if (uiManager != null)
+        {
+            Debug.Log("Using UIManager to show game over");
+            uiManager.ShowGameOverMenu();
+        }
+        else
+        {
+            Debug.LogError("CRITICAL: No Game Over UI found! Add UIManager or GameOverMenu to the scene.");
+        }
     }
 }
