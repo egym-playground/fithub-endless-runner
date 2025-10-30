@@ -41,10 +41,12 @@ class WebSocketServer:
             print("Removing client from set")
             self.clients.discard(websocket)
 
-    def notify_new_frame(self, direction):
-        # print("push socket update")
-        if self.loop and self.clients:
-            asyncio.run_coroutine_threadsafe(self._broadcast(direction), self.loop)
+    def notify_new_frame(self, directions):
+        for direction in directions:
+            print("print to server: ", direction)
+
+            if self.loop and self.clients:
+                asyncio.run_coroutine_threadsafe(self._broadcast(direction), self.loop)
 
     async def _broadcast(self, message):
         if not self.clients:

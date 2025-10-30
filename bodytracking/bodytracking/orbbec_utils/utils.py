@@ -124,4 +124,6 @@ def frame_to_bgr_image(frame: VideoFrame) -> Union[Optional[np.array], Any]:
     else:
         print("Unsupported color format: {}".format(color_format))
         return None
+    # rotate for orbbec on fithub
+    image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
     return image

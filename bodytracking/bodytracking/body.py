@@ -120,9 +120,6 @@ class BodyThread(threading.Thread):
 
             results = model(image, verbose=False, device=device)
 
-            # Rendering results
-            # render_results(ti, results)
-
             # TODO evaluate direction
             directions = evaluate_directions(results ,image.shape)
 
@@ -131,7 +128,8 @@ class BodyThread(threading.Thread):
             if self.pipe is not None:
                 self.data = ""
 
-            self.websocket_server.notify_new_frame("jump")
+            relevant_directions = [direction_name for direction_name, valid in directions.items() if valid]
+            self.websocket_server.notify_new_frame(relevant_directions)
 
         if global_vars.DEBUG:
             cv2.destroyAllWindows()

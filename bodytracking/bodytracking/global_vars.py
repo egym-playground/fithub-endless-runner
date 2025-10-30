@@ -10,8 +10,8 @@ WEBCAM_INDEX = 0
 # Settings do not universally apply, not all WebCams support all frame rates and resolutions
 USE_CUSTOM_CAM_SETTINGS = False
 FPS = 60
-WIDTH = 1920
-HEIGHT = 1080
+WIDTH = 1080
+HEIGHT = 1920
 
 # [0, 2] Higher numbers are more precise, but also cost more performance. Good environment conditions = 1, otherwise 2.
 MODEL_COMPLEXITY = 1
