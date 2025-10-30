@@ -16,7 +16,7 @@ HEIGHT = 1920
 # [0, 2] Higher numbers are more precise, but also cost more performance. Good environment conditions = 1, otherwise 2.
 MODEL_COMPLEXITY = 1
 
-USE_GPU = False
+USE_GPU = True
 
 
 PERSON_MINIMUM_THRESHOLD = 0.8
