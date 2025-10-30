@@ -85,7 +85,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2219462366710486165, guid: 834c05c6696f38c9daf9228e78da78ae, type: 3}
       propertyPath: m_Intensity
-      value: 3.69
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8592932162018258516, guid: 834c05c6696f38c9daf9228e78da78ae, type: 3}
       propertyPath: m_LocalScale.x
@@ -144,7 +144,8 @@ PrefabInstance:
       value: pumpkin (1)
       objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 124299316116656239, guid: 834c05c6696f38c9daf9228e78da78ae, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 8938496179185972462, guid: 834c05c6696f38c9daf9228e78da78ae, type: 3}
