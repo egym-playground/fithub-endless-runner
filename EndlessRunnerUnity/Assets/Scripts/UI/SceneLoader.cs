@@ -8,4 +8,16 @@ public class SceneLoader : MonoBehaviour
 		Debug.Log("Button clicked! Loading 'Main' scene...");
         SceneManager.LoadScene("Main");
     }
+
+    public void LoadSceneByName(string sceneName)
+    {
+        if (string.IsNullOrEmpty(sceneName))
+        {
+            Debug.LogError("Scene name cannot be null or empty!");
+            return;
+        }
+
+        Debug.Log($"Loading scene: {sceneName}");
+        SceneManager.LoadScene(sceneName);
+    }
 }
