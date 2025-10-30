@@ -4,18 +4,17 @@ from bodytracking import global_vars
 class DirectionEvaluator:
     def __init__(self):
         # Store previous positions for movement detection
-        self.prev_hip_center = None
-        self.prev_shoulder_center = None
 
         # Thresholds (normalized coordinates, range approximately -0.5 to 0.5)
         self.HORIZONTAL_THRESHOLD = 200  # Movement threshold for left/right
-        self.VERTICAL_JUMP_THRESHOLD = 100  # Upward movement threshold
-        self.SQUAT_THRESHOLD = 150  # Hip-to-shoulder ratio change for squat
+        self.VERTICAL_JUMP_THRESHOLD = 80  # Upward movement threshold
+        self.SQUAT_THRESHOLD = 200  # Hip-to-shoulder ratio change for squat
         self.MIN_CONFIDENCE = global_vars.PERSON_MINIMUM_THRESHOLD  # Minimum detection confidence
 
         # Smoothing window
         self.position_history = []
         self.history_size = 3
+        self.previous_direction = None
 
     @staticmethod
     def _get_keypoint(keypoints, index):
@@ -73,8 +72,6 @@ class DirectionEvaluator:
 
     def _detect_horizontal_movement(self, avg_hip):
         """Detect left/right movement based on hip position change."""
-        if self.prev_hip_center is None:
-            return None, None
 
         horizontal_delta = global_vars.WIDTH/2 - avg_hip[0]
 
@@ -85,16 +82,13 @@ class DirectionEvaluator:
 
     def _detect_jump(self, avg_hip):
         """Detect upward jump based on hip vertical movement."""
-        if self.prev_hip_center is None:
-            return False
+
 
         vertical_delta = global_vars.HEIGHT/2 - avg_hip[1]  # Y increases downward
         return vertical_delta > self.VERTICAL_JUMP_THRESHOLD
 
     def _detect_squat(self, avg_hip, avg_shoulder):
         """Detect squat based on hip-to-shoulder distance reduction."""
-        if self.prev_shoulder_center is None or self.prev_hip_center is None:
-            return False
 
         current_distance = global_vars.HEIGHT/2 - avg_hip[1]
 
@@ -102,22 +96,20 @@ class DirectionEvaluator:
 
     def reset_history(self):
         """Reset position history."""
-        self.prev_hip_center = None
-        self.prev_shoulder_center = None
         self.position_history = []
 
     def evaluate(self, results, image_shape):
         """
         Evaluate movement direction based on pose keypoints.
 
-        Returns dict with keys: 'left', 'right', 'jump', 'tuck'
+        Returns dict with keys: 'left', 'right', 'jump', 'slide'
         Each value is True if movement detected in that direction.
         """
         directions = {
             'left': False,
             'right': False,
             'jump': False,
-            'tuck': False
+            'slide': False
         }
 
         if len(results[0].keypoints) == 0:
@@ -169,14 +161,24 @@ class DirectionEvaluator:
             directions['right'] = moved_right
 
         directions['jump'] = self._detect_jump(avg_hip)
-        directions['tuck'] = self._detect_squat(avg_hip, avg_shoulder)
+        directions['slide'] = self._detect_squat(avg_hip, avg_shoulder)
 
-        # Update previous positions
-        self.prev_hip_center = avg_hip
-        self.prev_shoulder_center = avg_shoulder
+        new_directions = {}
+        for direction_name, is_active in directions.items():
+            if is_active and (self.previous_direction != direction_name):
+                new_directions[direction_name] = True
+            else:
+                new_directions[direction_name] = False
 
+        # Update previous direction (only store if a direction is active)
+        active_directions = [name for name, active in new_directions.items() if active]
+        if active_directions:
+            self.previous_direction = active_directions[0]  # Store first active direction
+        elif not any(directions.values()):
+            # Reset if no movement detected
+            self.previous_direction = None
 
-        return directions
+        return new_directions
 
 
 # Global evaluator instance
@@ -192,6 +194,6 @@ def evaluate_directions(results, image_shape):
         image_shape: Tuple of (height, width) for normalization
 
     Returns:
-        dict: Direction flags {'left': bool, 'right': bool, 'jump': bool, 'tuck': bool}
+        dict: Direction flags {'left': bool, 'right': bool, 'jump': bool, 'slide': bool}
     """
     return _evaluator.evaluate(results, image_shape)
