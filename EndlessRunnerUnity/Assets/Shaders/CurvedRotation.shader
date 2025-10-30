@@ -1,14 +1,15 @@
 ﻿// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
 
-Shader "Unlit/CurvedRotation"
+Shader "Unlit/CurvedNoRotation"
 { 
 	Properties
 	{
 		_MainTex ("Texture", 2D) = "white" {}
+		_CurveStrength ("Curve Strength", Float) = 0.0
 	}
 	SubShader
 	{
-		Tags { "RenderType"="Opaque" "DisableBatching" = "True"}
+		Tags { "RenderType"="Opaque" "DisableBatching" = "True" }
 		LOD 100
 
 		Pass
@@ -16,63 +17,55 @@ Shader "Unlit/CurvedRotation"
 			CGPROGRAM
 			#pragma vertex vert
 			#pragma fragment frag
-			// make fog work 
 			#pragma multi_compile_fog
 				
-#include "UnityCG.cginc"
+			#include "UnityCG.cginc"
 
-		struct appdata
-		{
-			float4 vertex : POSITION;
-			float2 uv : TEXCOORD0;
-			float4 color : COLOR;
-		};
+			struct appdata
+			{
+				float4 vertex : POSITION;
+				float2 uv : TEXCOORD0;
+				float4 color : COLOR;
+			};
 
-		struct v2f
-		{
-			float2 uv : TEXCOORD0;
-			float4 color : TEXCOORD1;
-			UNITY_FOG_COORDS(2)
+			struct v2f
+			{
+				float2 uv : TEXCOORD0;
+				float4 color : TEXCOORD1;
+				UNITY_FOG_COORDS(2)
 				float4 vertex : SV_POSITION;
-		};
+			};
 
-		sampler2D _MainTex;
-		float4 _MainTex_ST;
-		float _CurveStrength;
+			sampler2D _MainTex;
+			float4 _MainTex_ST;
+			float _CurveStrength;
 
+			v2f vert(appdata v)
+			{
+				v2f o;
 
-		v2f vert(appdata v)
-		{
-			v2f o;
+				// Use vertex as-is (no rotation)
+				float4 worldVert = v.vertex;
 
-			float _Horizon = 100.0f;
-			float _FadeDist = 50.0f;
+				o.vertex = UnityObjectToClipPos(worldVert);
 
-			float4 rotVert = v.vertex;
-			rotVert.z = v.vertex.z * cos(_Time.y * 3.14f) - v.vertex.x * sin(_Time.y * 3.14f);
-			rotVert.x = v.vertex.z * sin(_Time.y * 3.14f) + v.vertex.x * cos(_Time.y * 3.14f);
+				// Apply curvature
+				float dist = UNITY_Z_0_FAR_FROM_CLIPSPACE(o.vertex.z);
+				o.vertex.y -= _CurveStrength * dist * dist * _ProjectionParams.x;
 
-			o.vertex = UnityObjectToClipPos(rotVert);
+				o.uv = TRANSFORM_TEX(v.uv, _MainTex);
+				o.color = v.color;
 
-			float dist = UNITY_Z_0_FAR_FROM_CLIPSPACE(o.vertex.z);
+				UNITY_TRANSFER_FOG(o, o.vertex);
+				return o;
+			}
 
-			o.vertex.y -= _CurveStrength * dist * dist * _ProjectionParams.x;
-
-			o.uv = TRANSFORM_TEX(v.uv, _MainTex);
-			o.color = v.color;
-
-			UNITY_TRANSFER_FOG(o, o.vertex);
-			return o;
-		}
-
-		fixed4 frag(v2f i) : SV_Target
-		{
-			// sample the texture
-			fixed4 col = tex2D(_MainTex, i.uv) * i.color;
-		// apply fog
-		UNITY_APPLY_FOG(i.fogCoord, col);
-		return col;
-		}
+			fixed4 frag(v2f i) : SV_Target
+			{
+				fixed4 col = tex2D(_MainTex, i.uv) * i.color;
+				UNITY_APPLY_FOG(i.fogCoord, col);
+				return col;
+			}
 
 			ENDCG
 		}
