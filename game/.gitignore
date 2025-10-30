@@ -1,0 +1,130 @@
+# ======================================
+# Unity generated files
+# ======================================
+
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Mm]emoryCaptures/
+UserSettings/
+
+# Avoid ignoring Asset meta data
+!/[Aa]ssets/**/*.meta
+
+# ======================================
+# Auto-generated files
+# ======================================
+*.pidb
+*.suo
+*.user
+*.userprefs
+*.unityproj
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+*.db
+*.DS_Store
+
+# ======================================
+# Crash reports and debug
+# ======================================
+sysinfo.txt
+*.stacktrace
+
+# ======================================
+# Unity Cloud Build
+# ======================================
+/[Uu]ser[Ss]ettings/
+*.collabignore
+
+# ======================================
+# Asset Store tools
+# ======================================
+[Aa]sset[Ss]toreTools*
+
+# ======================================
+# Builds
+# ======================================
+*.apk
+*.aab
+*.xcodeproj/
+*.xcworkspace/
+*.app
+*.ipa
+*.exe
+*.dll
+*.manifest
+*.appx
+*.appxbundle
+*.msix
+*.msixbundle
+*.unitypackage
+*.unitypackage.meta
+
+# ======================================
+# Visual Studio / Rider
+# ======================================
+.vs/
+.idea/
+*.csproj
+*.sln
+*.sln.*
+*.DotSettings
+*.DotSettings.user
+*.userprefs
+
+# ======================================
+# Cache
+# ======================================
+/[Uu]ser[Ss]ettings/
+[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.bin*
+[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/*.json
+[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/catalog_*
+[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/addressables_content_state.bin
+/[Aa]ssets/StreamingAssets/aa/
+.cache/
+.caches/
+*.tmp
+*.bak
+
+# ======================================
+# Platform-specific
+# ======================================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# JetBrains Rider
+.idea/
+*.iml
+
+# ======================================
+# Package Manager
+# ======================================
+Packages/com.unity.package-manager-ui
+Packages/manifest.json.meta
+
+# ======================================
+# Others
+# ======================================
+*.orig
+*.diff
+*.patch
+*.rej
+
