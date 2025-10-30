@@ -70,7 +70,9 @@ public class SimpleWebSocketManager : MonoBehaviour
         // Process WebSocket messages
         if (webSocket != null)
         {
+#if !UNITY_WEBGL || UNITY_EDITOR
             webSocket.DispatchMessageQueue();
+#endif
         }
 
         // Also listen for keyboard input for testing
