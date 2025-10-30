@@ -27,7 +27,7 @@ def main():
         while True:
             counter += 1
             print(f"Sending notification {counter}: jump")
-            server.notify_new_frame("jump")
+            server.notify_new_frame(["jump"])
             time.sleep(1)
     except KeyboardInterrupt:
         print("\nShutting down...")
