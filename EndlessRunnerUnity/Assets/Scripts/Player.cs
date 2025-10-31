@@ -20,6 +20,7 @@ public class Player : MonoBehaviour
     private Rigidbody rb;
     private UIManager uiManager;
     private GameOverMenu gameOverMenu;
+    private GameApiManager gameApiManager;
     private BoxCollider boxCollider;
     private Vector3 targetPosition;
     private Vector3 boxColliderSize;
@@ -40,9 +41,27 @@ public class Player : MonoBehaviour
         animator = GetComponent<Animator>();
         uiManager = FindObjectOfType<UIManager>();
         gameOverMenu = FindObjectOfType<GameOverMenu>();
+        SetupGameApiManager();
         boxCollider = GetComponent<BoxCollider>();
         boxColliderSize = boxCollider.size;
         animator.Play("runStart");
+    }
+    
+    void SetupGameApiManager()
+    {
+        // Find existing GameApiManager or create one
+        gameApiManager = FindObjectOfType<GameApiManager>();
+        if (gameApiManager == null)
+        {
+            Debug.Log("GameApiManager not found, creating one for score submission...");
+            GameObject apiObject = new GameObject("GameApiManager");
+            gameApiManager = apiObject.AddComponent<GameApiManager>();
+            Debug.Log("GameApiManager created successfully by Player script");
+        }
+        else
+        {
+            Debug.Log("GameApiManager found by Player script");
+        }
     }
 
     void Update()
@@ -287,7 +306,26 @@ public class Player : MonoBehaviour
         // Wait for death animation to play
         yield return new WaitForSeconds(2f);
 
-        Debug.Log("Death animation finished. Attempting to show Game Over UI...");
+        Debug.Log("Death animation finished. Submitting score to API...");
+
+        // Ensure GameApiManager is available before submitting score
+        if (gameApiManager == null)
+        {
+            Debug.Log("GameApiManager was null, trying to find or create it now...");
+            SetupGameApiManager();
+        }
+
+        // Submit score to API before showing UI
+        if (gameApiManager != null)
+        {
+            SubmitScoreToApi((int)score, coins);
+        }
+        else
+        {
+            Debug.LogError("CRITICAL: Still cannot find or create GameApiManager! Score will not be submitted to API.");
+        }
+
+        Debug.Log("Attempting to show Game Over UI...");
 
         // Show game over UI - try both UIManager and GameOverMenu
         if (gameOverMenu != null)
@@ -304,5 +342,50 @@ public class Player : MonoBehaviour
         {
             Debug.LogError("CRITICAL: No Game Over UI found! Add UIManager or GameOverMenu to the scene.");
         }
+    }
+
+    /// <summary>
+    /// Submit the player's final score and coins to the API
+    /// </summary>
+    private void SubmitScoreToApi(int finalScore, int finalCoins)
+    {
+        Debug.Log("=== SCORE SUBMISSION STARTED ===");
+        Debug.Log($"Player final stats - Score: {finalScore}, Coins: {finalCoins}");
+        
+        // Validate GameApiManager
+        if (gameApiManager == null)
+        {
+            Debug.LogError("GameApiManager is null! Cannot submit score to API.");
+            return;
+        }
+        
+        Debug.Log("GameApiManager found, creating score data object...");
+        
+        // Create score data object
+        var scoreData = new GameOverScoreData
+        {
+            score = finalScore,
+            coins = finalCoins
+        };
+
+        Debug.Log($"Score data created: {JsonUtility.ToJson(scoreData)}");
+        Debug.Log("Calling GameApiManager.SubmitGameOverScore...");
+
+        // Submit to API - you can fill in the endpoint URL
+        gameApiManager.SubmitGameOverScore(scoreData, 
+            (success) => {
+                Debug.Log("=== SCORE SUBMISSION CALLBACK ===");
+                if (success)
+                {
+                    Debug.Log("✅ Score submitted successfully to API!");
+                    Debug.Log($"Final submitted data - Score: {finalScore}, Coins: {finalCoins}");
+                }
+                else
+                {
+                    Debug.LogWarning("❌ Failed to submit score to API!");
+                    Debug.LogWarning($"Failed data - Score: {finalScore}, Coins: {finalCoins}");
+                }
+                Debug.Log("=== SCORE SUBMISSION COMPLETE ===");
+            });
     }
 }
