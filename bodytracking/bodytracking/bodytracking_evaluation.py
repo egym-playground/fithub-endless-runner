@@ -1,5 +1,50 @@
 import numpy as np
 from bodytracking import global_vars
+from enum import Enum
+
+
+class PositionState(Enum):
+    LEFT = "left"
+    CENTER = "center"
+    RIGHT = "right"
+
+
+class StateTracker:
+    """Track player's horizontal position state."""
+
+    def __init__(self):
+        self.current_state = PositionState.CENTER
+        self.previous_state = PositionState.CENTER
+
+    def update(self, move_left, move_right):
+        """
+        Update state based on current hip position.
+
+        Returns:
+            tuple: (moved_left, moved_right) - signals to send
+        """
+        match(bool(move_right), bool(move_left), self.current_state):
+            case (True, False, PositionState.CENTER):
+                self.current_state = PositionState.RIGHT
+                moved_left = False
+                moved_right = True
+            case (False, True, PositionState.CENTER):
+                self.current_state = PositionState.LEFT
+                moved_left = True
+                moved_right = False
+            case (False, False, PositionState.LEFT):
+                self.current_state = PositionState.CENTER
+                moved_left = False
+                moved_right = True
+            case (False, False, PositionState.RIGHT):
+                self.current_state = PositionState.CENTER
+                moved_left = True
+                moved_right = False
+            case _:
+                moved_left = False
+                moved_right = False
+
+        return moved_left, moved_right
 
 
 class DirectionEvaluator:
@@ -25,6 +70,8 @@ class DirectionEvaluator:
         self.baseline_hip_y = None  # Store resting hip height
         self.baseline_frames = []
         self.baseline_window = 30  # Frames to establish baseline
+
+        self.state_tracker = StateTracker()
 
     @staticmethod
     def _get_keypoint(keypoints, index):
@@ -164,6 +211,7 @@ class DirectionEvaluator:
         """Reset position history."""
         self.position_history = []
 
+
     def evaluate(self, results):
         """
         Evaluate movement direction based on pose keypoints.
@@ -229,7 +277,8 @@ class DirectionEvaluator:
         avg_shoulder = np.mean([p['shoulder'] for p in self.position_history], axis=0)
 
         # Detect movements using separate functions
-        moved_left, moved_right = self._detect_horizontal_movement(avg_hip)
+
+        moved_left, moved_right =self.state_tracker.update(*self._detect_horizontal_movement(avg_hip))
         if moved_left is not None:
             directions['left'] = moved_left
             directions['right'] = moved_right
