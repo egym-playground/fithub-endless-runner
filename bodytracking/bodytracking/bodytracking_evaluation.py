@@ -46,6 +46,10 @@ class StateTracker:
 
         return moved_left, moved_right
 
+class JointState:
+    def __init__(self):
+        self.previous_positions = {}
+
 
 class DirectionEvaluator:
     def __init__(self):
@@ -152,17 +156,52 @@ class DirectionEvaluator:
 
         return left_above and right_above
 
-    def _detect_jump(self, current_hip):
+    def _check_feet_elevation(self, left_ankle, right_ankle):
         """
-        Detect jump using velocity-based approach with baseline comparison.
+        Check if feet are elevated (moving upward or off ground).
+
+        Returns:
+            bool: True if at least one foot shows upward movement
+        """
+        if not hasattr(self, 'previous_ankles'):
+            self.previous_ankles = {'left': left_ankle, 'right': right_ankle}
+            return False
+
+        prev_left = self.previous_ankles.get('left')
+        prev_right = self.previous_ankles.get('right')
+
+        feet_moving_up = False
+
+        # Check left foot upward movement
+        if left_ankle is not None and prev_left is not None:
+            left_velocity = prev_left[1] - left_ankle[1]  # Positive = moving up
+            if left_velocity > self.VERTICAL_JUMP_VELOCITY * 0.5:  # 50% of hip threshold
+                feet_moving_up = True
+
+        # Check right foot upward movement
+        if right_ankle is not None and prev_right is not None:
+            right_velocity = prev_right[1] - right_ankle[1]
+            if right_velocity > self.VERTICAL_JUMP_VELOCITY * 0.5:
+                feet_moving_up = True
+
+        return feet_moving_up
+
+    def _detect_jump(self, current_hip, left_ankle, right_ankle):
+        """
+        Detect jump using velocity-based approach with baseline comparison and foot verification.
 
         A jump is detected when:
         1. Hip moves upward faster than threshold velocity
         2. Hip is significantly above the established baseline
-        3. Cooldown period has passed
+        3. At least one foot is elevated (both feet off ground or moving upward)
+        4. Cooldown period has passed
         """
         if self.jump_cooldown > 0:
             self.jump_cooldown -= 1
+            return False
+
+        # Require valid ankle keypoints
+        if left_ankle is None and right_ankle is None:
             return False
 
         # Establish baseline (resting hip height)
@@ -170,33 +209,36 @@ class DirectionEvaluator:
         if len(self.baseline_frames) > self.baseline_window:
             self.baseline_frames.pop(0)
 
-        if len(self.baseline_frames) >= 5:  # Need minimum frames for baseline
-            self.baseline_hip_y = np.median(self.baseline_frames)  # Use median to ignore outliers
+        if len(self.baseline_frames) >= 5:
+            self.baseline_hip_y = np.median(self.baseline_frames)
         else:
             return False
 
-        # Calculate velocity (change in Y position)
+        # Calculate hip velocity
         if self.previous_avg_hip is None:
             self.previous_avg_hip = current_hip
+            self.previous_ankles = {'left': left_ankle, 'right': right_ankle}
             return False
 
-        vertical_velocity = self.previous_avg_hip[1] - current_hip[1]  # Positive = moving up
-
-        # Distance from baseline
+        vertical_velocity = self.previous_avg_hip[1] - current_hip[1]
         distance_from_baseline = self.baseline_hip_y - current_hip[1]
 
-        # Detect jump: fast upward movement AND significantly above baseline
+        # Check foot elevation/movement
+        feet_elevated = self._check_feet_elevation(left_ankle, right_ankle)
+
+        # Detect jump: hip velocity + baseline distance + feet moving
         is_jumping = (
                 vertical_velocity > self.VERTICAL_JUMP_VELOCITY and
-                distance_from_baseline > 50  # Must be at least 50 pixels above baseline
+                distance_from_baseline > 50 and
+                feet_elevated
         )
 
         if is_jumping:
             self.jump_cooldown = self.JUMP_COOLDOWN_FRAMES
-            # Reset baseline after jump to adapt to new position
             self.baseline_frames = []
 
         self.previous_avg_hip = current_hip.copy()
+        self.previous_ankles = {'left': left_ankle, 'right': right_ankle}
 
         return is_jumping
 
@@ -248,6 +290,8 @@ class DirectionEvaluator:
         right_shoulder = self._get_keypoint(keypoints, 6)
         left_wrist = self._get_keypoint(keypoints, 9)
         right_wrist = self._get_keypoint(keypoints, 10)
+        left_ankle = self._get_keypoint(keypoints, 15)
+        right_ankle = self._get_keypoint(keypoints, 16)
 
         if left_hip is None or right_hip is None or left_shoulder is None or right_shoulder is None:
             return directions
@@ -283,7 +327,7 @@ class DirectionEvaluator:
             directions['left'] = moved_left
             directions['right'] = moved_right
 
-        directions['jump'] = self._detect_jump(hip_center)
+        directions['jump'] = self._detect_jump(hip_center, left_ankle, right_ankle)
         directions['slide'] = self._detect_squat(avg_hip, avg_shoulder)
         directions['start'] = self._detect_start(left_wrist, right_wrist, left_shoulder, right_shoulder)
 
