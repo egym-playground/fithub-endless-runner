@@ -59,7 +59,7 @@ class DirectionEvaluator:
         self.HORIZONTAL_THRESHOLD = 200  # Movement threshold for left/right
         self.VERTICAL_JUMP_VELOCITY = 15  # Minimum upward velocity (pixels/frame)
         self.JUMP_COOLDOWN_FRAMES = 10  # Frames to wait before detecting another jump
-        self.SQUAT_THRESHOLD = 200  # Hip-to-shoulder ratio change for squat
+        self.SQUAT_THRESHOLD = 300  # Hip-to-shoulder ratio change for squat
         self.MIN_CONFIDENCE = global_vars.PERSON_MINIMUM_THRESHOLD  # Minimum detection confidence
         self.START_THRESHOLD = 200  # Minimum distance wrists must be above shoulders
 
@@ -181,7 +181,7 @@ class DirectionEvaluator:
         # Check right foot upward movement
         if right_ankle is not None and prev_right is not None:
             right_velocity = prev_right[1] - right_ankle[1]
-            if right_velocity > self.VERTICAL_JUMP_VELOCITY * 0.5:
+            if right_velocity > self.VERTICAL_JUMP_VELOCITY:
                 feet_moving_up = True
 
         return feet_moving_up
