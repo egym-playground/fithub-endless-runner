@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 1731403780537609593}
   - component: {fileID: 8792318558379977246}
   m_Layer: 0
-  m_Name: Coin
+  m_Name: Candy
   m_TagString: Coin
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -31,7 +31,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 4849062719217593885}
+  - {fileID: 8746351682345913913}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1731403780537609593
@@ -67,7 +67,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.4512444, y: 0.21733224, z: 0.13049293}
   m_Center: {x: 0.003864497, y: 0.50276536, z: -0.0019322634}
---- !u!1001 &4954502368582470134
+--- !u!1001 &9145669544422091218
 PrefabInstance:
   m_ObjectHideFlags: 0
   serializedVersion: 2
@@ -144,8 +144,8 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 5e897c9774500c649a84c596307cdc77, type: 3}
---- !u!4 &4849062719217593885 stripped
+--- !u!4 &8746351682345913913 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 5e897c9774500c649a84c596307cdc77, type: 3}
-  m_PrefabInstance: {fileID: 4954502368582470134}
+  m_PrefabInstance: {fileID: 9145669544422091218}
   m_PrefabAsset: {fileID: 0}
