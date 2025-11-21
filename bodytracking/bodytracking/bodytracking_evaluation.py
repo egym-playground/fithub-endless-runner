@@ -1,54 +1,8 @@
 import numpy as np
 from bodytracking import global_vars
-from enum import Enum
-
-
-class PositionState(Enum):
-    LEFT = "left"
-    CENTER = "center"
-    RIGHT = "right"
-
-
-class StateTracker:
-    """Track player's horizontal position state."""
-
-    def __init__(self):
-        self.current_state = PositionState.CENTER
-        self.previous_state = PositionState.CENTER
-
-    def update(self, move_left, move_right):
-        """
-        Update state based on current hip position.
-
-        Returns:
-            tuple: (moved_left, moved_right) - signals to send
-        """
-        match(bool(move_right), bool(move_left), self.current_state):
-            case (True, False, PositionState.CENTER):
-                self.current_state = PositionState.RIGHT
-                moved_left = False
-                moved_right = True
-            case (False, True, PositionState.CENTER):
-                self.current_state = PositionState.LEFT
-                moved_left = True
-                moved_right = False
-            case (False, False, PositionState.LEFT):
-                self.current_state = PositionState.CENTER
-                moved_left = False
-                moved_right = True
-            case (False, False, PositionState.RIGHT):
-                self.current_state = PositionState.CENTER
-                moved_left = True
-                moved_right = False
-            case _:
-                moved_left = False
-                moved_right = False
-
-        return moved_left, moved_right
-
-class JointState:
-    def __init__(self):
-        self.previous_positions = {}
+from state_tracker import StateTracker
+from pose_state import PoseState
+from height_measure import HeightMeasure
 
 
 class DirectionEvaluator:
@@ -76,25 +30,8 @@ class DirectionEvaluator:
         self.baseline_window = 30  # Frames to establish baseline
 
         self.state_tracker = StateTracker()
-
-    @staticmethod
-    def _get_keypoint(keypoints, index):
-        """Extract keypoint coordinates safely."""
-        if keypoints.xy is not None and len(keypoints.xy) > 0:
-            xy = keypoints.xy[0].cpu().numpy()
-            conf = keypoints.conf[0].cpu().numpy()
-            if index < len(xy) and conf[index] > 0.5:
-                return xy[index]
-        return None
-
-    @staticmethod
-    def _normalize_coords(point, image_shape):
-        """Normalize coordinates to -0.5 to 0.5 range."""
-        if point is None:
-            return None
-        x_norm = (point[0] / image_shape[1]) - 0.5
-        y_norm = (point[1] / image_shape[0]) - 0.5
-        return np.array([x_norm, y_norm])
+        self.keypoints = None  # type: PoseState
+        self.height_measure = HeightMeasure()
 
     def _get_largest_person_with_confidence(self, results):
         """
@@ -117,7 +54,7 @@ class DirectionEvaluator:
         if not valid_indices:
             return None
 
-        # Find largest bounding box among valid detections
+        # Find the largest bounding box among valid detections
         largest_idx = None
         largest_area = 0
 
@@ -134,22 +71,21 @@ class DirectionEvaluator:
     def _detect_horizontal_movement(self, avg_hip):
         """Detect left/right movement based on hip position change."""
 
-        horizontal_delta = global_vars.WIDTH/2 - avg_hip[0]
+        horizontal_delta = global_vars.WIDTH / 2 - avg_hip[0]
 
         moved_right = horizontal_delta > self.HORIZONTAL_THRESHOLD
         moved_left = horizontal_delta < -self.HORIZONTAL_THRESHOLD
 
         return moved_left, moved_right
 
-
-    def _detect_start(self, left_wrist, right_wrist, left_shoulder, right_shoulder):
+    def _detect_start(self):
         """Detect start gesture when both wrists are above shoulders by threshold."""
-        if left_wrist is None or right_wrist is None or left_shoulder is None or right_shoulder is None:
+        if self.keypoints.left_wrist is None or self.keypoints.right_wrist is None or self.keypoints.left_shoulder is None or self.keypoints.right_shoulder is None:
             return False
 
         # Check if both wrists are above their respective shoulders by at least threshold (Y increases downward)
-        left_distance = left_shoulder[1] - left_wrist[1]
-        right_distance = right_shoulder[1] - right_wrist[1]
+        left_distance = self.keypoints.left_shoulder[1] - self.keypoints.left_wrist[1]
+        right_distance = self.keypoints.right_shoulder[1] - self.keypoints.right_wrist[1]
 
         left_above = left_distance > self.START_THRESHOLD
         right_above = right_distance > self.START_THRESHOLD
@@ -186,7 +122,7 @@ class DirectionEvaluator:
 
         return feet_moving_up
 
-    def _detect_jump(self, current_hip, left_ankle, right_ankle):
+    def _detect_jump(self, current_hip):
         """
         Detect jump using velocity-based approach with baseline comparison and foot verification.
 
@@ -201,7 +137,7 @@ class DirectionEvaluator:
             return False
 
         # Require valid ankle keypoints
-        if left_ankle is None and right_ankle is None:
+        if self.keypoints.left_ankle is None and self.keypoints.right_ankle is None:
             return False
 
         # Establish baseline (resting hip height)
@@ -217,14 +153,14 @@ class DirectionEvaluator:
         # Calculate hip velocity
         if self.previous_avg_hip is None:
             self.previous_avg_hip = current_hip
-            self.previous_ankles = {'left': left_ankle, 'right': right_ankle}
+            self.previous_ankles = {'left': self.keypoints.left_ankle, 'right': self.keypoints.right_ankle}
             return False
 
         vertical_velocity = self.previous_avg_hip[1] - current_hip[1]
         distance_from_baseline = self.baseline_hip_y - current_hip[1]
 
         # Check foot elevation/movement
-        feet_elevated = self._check_feet_elevation(left_ankle, right_ankle)
+        feet_elevated = self._check_feet_elevation(self.keypoints.left_ankle, self.keypoints.right_ankle)
 
         # Detect jump: hip velocity + baseline distance + feet moving
         is_jumping = (
@@ -238,21 +174,20 @@ class DirectionEvaluator:
             self.baseline_frames = []
 
         self.previous_avg_hip = current_hip.copy()
-        self.previous_ankles = {'left': left_ankle, 'right': right_ankle}
+        self.previous_ankles = {'left': self.keypoints.left_ankle, 'right': self.keypoints.right_ankle}
 
         return is_jumping
 
     def _detect_squat(self, avg_hip, avg_shoulder):
         """Detect squat based on hip-to-shoulder distance reduction."""
 
-        current_distance = global_vars.HEIGHT/2 - avg_hip[1]
+        current_distance = global_vars.HEIGHT / 2 - avg_hip[1]
 
         return current_distance < -self.SQUAT_THRESHOLD
 
-    def reset_history(self):
+    def _reset_history(self):
         """Reset position history."""
         self.position_history = []
-
 
     def evaluate(self, results):
         """
@@ -277,36 +212,22 @@ class DirectionEvaluator:
 
         if person_idx is None:
             # Reset history if no valid person detected
-            self.reset_history()
+            self._reset_history()
             return directions
 
         keypoints = results[0].keypoints[person_idx]
 
-        # Key indices for YOLO COCO format (17 keypoints):
-        # 11: left_hip, 12: right_hip, 5: left_shoulder, 6: right_shoulder
-        left_hip = self._get_keypoint(keypoints, 11)
-        right_hip = self._get_keypoint(keypoints, 12)
-        left_shoulder = self._get_keypoint(keypoints, 5)
-        right_shoulder = self._get_keypoint(keypoints, 6)
-        left_wrist = self._get_keypoint(keypoints, 9)
-        right_wrist = self._get_keypoint(keypoints, 10)
-        left_ankle = self._get_keypoint(keypoints, 15)
-        right_ankle = self._get_keypoint(keypoints, 16)
+        self.keypoints = PoseState(keypoints)
 
-        if left_hip is None or right_hip is None or left_shoulder is None or right_shoulder is None:
+        if not self.keypoints.main_kps_available():
             return directions
 
         # Calculate centers in normalized coordinates
-        hip_center = (left_hip + right_hip) / 2
-        shoulder_center = (left_shoulder + right_shoulder) / 2
+        hip_center = (self.keypoints.left_hip + self.keypoints.right_hip) / 2
+        shoulder_center = (self.keypoints.left_shoulder + self.keypoints.right_shoulder) / 2
 
         if hip_center is None or shoulder_center is None:
             return directions
-
-        # if not self.position_history:
-        #     self.previous_avg_hip = np.mean([p['hip'] for p in self.position_history], axis=0)
-        # else:
-        #     return directions
 
         # Smooth position using history
         self.position_history.append({
@@ -321,16 +242,20 @@ class DirectionEvaluator:
         avg_shoulder = np.mean([p['shoulder'] for p in self.position_history], axis=0)
 
         # Detect movements using separate functions
-
-        moved_left, moved_right =self.state_tracker.update(*self._detect_horizontal_movement(avg_hip))
+        moved_left, moved_right = self.state_tracker.update(*self._detect_horizontal_movement(avg_hip))
         if moved_left is not None:
             directions['left'] = moved_left
             directions['right'] = moved_right
 
-        directions['jump'] = self._detect_jump(hip_center, left_ankle, right_ankle)
+        directions['jump'] = self._detect_jump(hip_center)
         directions['slide'] = self._detect_squat(avg_hip, avg_shoulder)
-        directions['start'] = self._detect_start(left_wrist, right_wrist, left_shoulder, right_shoulder)
+        directions['start'] = self._detect_start()
 
+        self.height_measure.update_height(directions, self.keypoints)
+
+        return self._get_directions_historic(directions)
+
+    def _get_directions_historic(self, directions):
         new_directions = {}
         for direction_name, is_active in directions.items():
             if is_active and (self.previous_direction != direction_name):
@@ -359,7 +284,6 @@ def evaluate_directions(results):
 
     Args:
         results: YOLOv8 pose detection results
-        image_shape: Tuple of (height, width) for normalization
 
     Returns:
         dict: Direction flags {'left': bool, 'right': bool, 'jump': bool, 'slide': bool}
