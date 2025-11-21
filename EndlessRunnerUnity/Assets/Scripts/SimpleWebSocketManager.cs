@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using NativeWebSocket;
+using UnityEngine.SceneManagement;
 
 public class SimpleWebSocketManager : MonoBehaviour
 {
@@ -196,8 +197,6 @@ public class SimpleWebSocketManager : MonoBehaviour
 
     public void ProcessCommand(string command)
     {
-        if (player == null) return;
-
         command = command.Trim().ToLower();
 
         switch (command)
@@ -219,6 +218,13 @@ public class SimpleWebSocketManager : MonoBehaviour
             case "down":
                 player.Slide();
                 Log("⬇️ Slide executed");
+                break;
+            case "start":
+                if (player == null || (player != null && player.isGameOver))
+                {
+                    SceneManager.LoadScene("Main");
+                    Log("Start Game");
+                }
                 break;
             default:
                 LogError($"❓ Unknown command: {command}");

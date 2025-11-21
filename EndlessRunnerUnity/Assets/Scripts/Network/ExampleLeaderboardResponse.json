@@ -1,0 +1,78 @@
+{
+  "success": true,
+  "message": "Leaderboard retrieved successfully",
+  "data": [
+    {
+      "rank": 1,
+      "playerName": "ProGamer2024",
+      "score": 25847,
+      "coins": 432,
+      "timestamp": "2025-10-30 14:23:15"
+    },
+    {
+      "rank": 2,
+      "playerName": "SpeedRunner",
+      "score": 22156,
+      "coins": 389,
+      "timestamp": "2025-10-30 13:45:32"
+    },
+    {
+      "rank": 3,
+      "playerName": "CoinCollector",
+      "score": 19875,
+      "coins": 521,
+      "timestamp": "2025-10-30 12:18:44"
+    },
+    {
+      "rank": 4,
+      "playerName": "JumpMaster",
+      "score": 18234,
+      "coins": 298,
+      "timestamp": "2025-10-30 11:56:12"
+    },
+    {
+      "rank": 5,
+      "playerName": "RunnerX",
+      "score": 17592,
+      "coins": 367,
+      "timestamp": "2025-10-30 10:34:28"
+    },
+    {
+      "rank": 6,
+      "playerName": "Player4782",
+      "score": 15428,
+      "coins": 245,
+      "timestamp": "2025-10-30 09:22:55"
+    },
+    {
+      "rank": 7,
+      "playerName": "EndlessRun",
+      "score": 14156,
+      "coins": 189,
+      "timestamp": "2025-10-30 08:47:11"
+    },
+    {
+      "rank": 8,
+      "playerName": "Player3291",
+      "score": 12987,
+      "coins": 223,
+      "timestamp": "2025-10-29 22:15:33"
+    },
+    {
+      "rank": 9,
+      "playerName": "FastFeet",
+      "score": 11765,
+      "coins": 178,
+      "timestamp": "2025-10-29 21:08:42"
+    },
+    {
+      "rank": 10,
+      "playerName": "Player1847",
+      "score": 10234,
+      "coins": 156,
+      "timestamp": "2025-10-29 20:33:17"
+    }
+  ],
+  "totalEntries": 247,
+  "lastUpdated": "2025-10-30 14:25:00"
+}
