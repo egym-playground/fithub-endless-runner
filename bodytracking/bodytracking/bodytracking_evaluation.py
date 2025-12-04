@@ -4,18 +4,21 @@ from state_tracker import StateTracker
 from pose_state import PoseState
 from height_measure import HeightMeasure
 
+DEFAULT_JUMP_VELOCITY = 15
+DEFAULT_HORIZONTAL_THRESHOLD = 200
+DEFAULT_SQUAT_THRESHOLD = 300
+DEFAULT_START_THRESHOLD = 200  # Minimum distance wrists must be above shoulders
 
 class DirectionEvaluator:
     def __init__(self):
         # Store previous positions for movement detection
 
         # Thresholds (normalized coordinates, range approximately -0.5 to 0.5)
-        self.HORIZONTAL_THRESHOLD = 200  # Movement threshold for left/right
-        self.VERTICAL_JUMP_VELOCITY = 15  # Minimum upward velocity (pixels/frame)
         self.JUMP_COOLDOWN_FRAMES = 10  # Frames to wait before detecting another jump
-        self.SQUAT_THRESHOLD = 300  # Hip-to-shoulder ratio change for squat
         self.MIN_CONFIDENCE = global_vars.PERSON_MINIMUM_THRESHOLD  # Minimum detection confidence
-        self.START_THRESHOLD = 200  # Minimum distance wrists must be above shoulders
+        self.START_RATIO = 0.2  # Start gesture threshold ratio
+        self.SQUAT_DEPTH_RATIO = 0.25  # Squat depth should be 25% of person height
+        self.HORIZONTAL_RATIO = 1.25
 
         # Smoothing window
         self.position_history = []
@@ -32,6 +35,28 @@ class DirectionEvaluator:
         self.state_tracker = StateTracker()
         self.keypoints = None  # type: PoseState
         self.height_measure = HeightMeasure()
+
+    @staticmethod
+    def get_dynamic_jump_velocity():
+        """Get jump threshold based on person's height"""
+        return DEFAULT_JUMP_VELOCITY  # Fallback default
+
+    def get_dynamic_squat_threshold(self):
+        """Get squat threshold based on person's height"""
+        if self.height_measure.get_height() > 300:
+            return self.height_measure.get_height() * self.SQUAT_DEPTH_RATIO
+        return DEFAULT_SQUAT_THRESHOLD
+
+    def get_dynamic_start_threshold(self):
+        """Get start gesture threshold based on person's height"""
+        if self.height_measure.get_height() > 300:
+            return self.height_measure.get_height() * self.START_RATIO  # 20% of height
+        return DEFAULT_START_THRESHOLD
+
+    def get_dynamic_horizontal(self):
+        if self.height_measure.get_width() > 10:
+            return self.height_measure.get_width() * self.HORIZONTAL_RATIO  # 20% of height
+        return DEFAULT_HORIZONTAL_THRESHOLD
 
     def _get_largest_person_with_confidence(self, results):
         """
@@ -73,8 +98,8 @@ class DirectionEvaluator:
 
         horizontal_delta = global_vars.WIDTH / 2 - avg_hip[0]
 
-        moved_right = horizontal_delta > self.HORIZONTAL_THRESHOLD
-        moved_left = horizontal_delta < -self.HORIZONTAL_THRESHOLD
+        moved_right = horizontal_delta > self.get_dynamic_horizontal()
+        moved_left = horizontal_delta < -self.get_dynamic_horizontal()
 
         return moved_left, moved_right
 
@@ -87,8 +112,8 @@ class DirectionEvaluator:
         left_distance = self.keypoints.left_shoulder[1] - self.keypoints.left_wrist[1]
         right_distance = self.keypoints.right_shoulder[1] - self.keypoints.right_wrist[1]
 
-        left_above = left_distance > self.START_THRESHOLD
-        right_above = right_distance > self.START_THRESHOLD
+        left_above = left_distance > self.get_dynamic_start_threshold()
+        right_above = right_distance > self.get_dynamic_jump_velocity()
 
         return left_above and right_above
 
@@ -111,13 +136,13 @@ class DirectionEvaluator:
         # Check left foot upward movement
         if left_ankle is not None and prev_left is not None:
             left_velocity = prev_left[1] - left_ankle[1]  # Positive = moving up
-            if left_velocity > self.VERTICAL_JUMP_VELOCITY * 0.5:  # 50% of hip threshold
+            if left_velocity > self.get_dynamic_jump_velocity() * 0.5:  # 50% of hip threshold
                 feet_moving_up = True
 
         # Check right foot upward movement
         if right_ankle is not None and prev_right is not None:
             right_velocity = prev_right[1] - right_ankle[1]
-            if right_velocity > self.VERTICAL_JUMP_VELOCITY:
+            if right_velocity > self.get_dynamic_jump_velocity():
                 feet_moving_up = True
 
         return feet_moving_up
@@ -164,7 +189,7 @@ class DirectionEvaluator:
 
         # Detect jump: hip velocity + baseline distance + feet moving
         is_jumping = (
-                vertical_velocity > self.VERTICAL_JUMP_VELOCITY and
+                vertical_velocity > self.get_dynamic_jump_velocity() and
                 distance_from_baseline > 50 and
                 feet_elevated
         )
@@ -183,7 +208,7 @@ class DirectionEvaluator:
 
         current_distance = global_vars.HEIGHT / 2 - avg_hip[1]
 
-        return current_distance < -self.SQUAT_THRESHOLD
+        return current_distance < -self.get_dynamic_squat_threshold()
 
     def _reset_history(self):
         """Reset position history."""

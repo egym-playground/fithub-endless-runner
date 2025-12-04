@@ -2,7 +2,7 @@
 KILL_THREADS = False
 
 # Toggle this in order to view how your WebCam is being interpreted (reduces performance).
-DEBUG = True
+DEBUG = False
 
 # To switch cameras. Sometimes takes a while.
 WEBCAM_INDEX = 0
@@ -16,6 +16,8 @@ HEIGHT = 1920
 # [0, 2] Higher numbers are more precise, but also cost more performance. Good environment conditions = 1, otherwise 2.
 MODEL_COMPLEXITY = 1
 
-USE_GPU = False
+USE_GPU = True
 
 PERSON_MINIMUM_THRESHOLD = 0.8
+USE_ORBBEC = True
+
