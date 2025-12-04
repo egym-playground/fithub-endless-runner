@@ -19,5 +19,24 @@ MODEL_COMPLEXITY = 1
 USE_GPU = True
 
 PERSON_MINIMUM_THRESHOLD = 0.8
-USE_ORBBEC = True
+
+def detect_camera():
+    """Automatically detect which camera is available (Orbbec or Kinect)."""
+    # Try Orbbec first
+    try:
+        import pyorbbecsdk as ob
+        ctx = ob.Context()
+        devices = ctx.query_devices()
+        if len(devices) > 0:
+            return "orbbec"
+    except (ImportError, RuntimeError):
+        pass
+
+    return "kinect"
+camera_name = detect_camera()
+print("Detected camera: %s" % camera_name)
+if camera_name == "orbbec":
+    USE_ORBBEC = True
+else:
+    USE_ORBBEC = False
 

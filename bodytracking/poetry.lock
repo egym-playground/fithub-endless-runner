@@ -1236,6 +1236,22 @@ dev = ["abi3audit", "black", "check-manifest", "colorama ; os_name == \"nt\"", "
 test = ["pytest", "pytest-instafail", "pytest-subtests", "pytest-xdist", "pywin32 ; os_name == \"nt\" and platform_python_implementation != \"PyPy\"", "setuptools", "wheel ; os_name == \"nt\" and platform_python_implementation != \"PyPy\"", "wmi ; os_name == \"nt\" and platform_python_implementation != \"PyPy\""]
 
 [[package]]
+name = "pykinect-azure"
+version = "0.0.4"
+description = "Python library to run Kinect Azure DK SDK functions"
+optional = false
+python-versions = "*"
+groups = ["main"]
+files = [
+    {file = "pykinect_azure-0.0.4-py3-none-any.whl", hash = "sha256:a701e5daf2b291c45921838b88a7b01ddc3128eb6793faf795e7ad39a4aa7785"},
+    {file = "pykinect_azure-0.0.4.tar.gz", hash = "sha256:15f72bfd76f63024247d22199389e96dbc8b6f5c7ae4d0672b6628969189f57a"},
+]
+
+[package.dependencies]
+numpy = "*"
+opencv-python = "*"
+
+[[package]]
 name = "pyorbbecsdk2"
 version = "2.0.15"
 description = "pyorbbecsdk is a python wrapper for the OrbbecSDK"
@@ -1810,4 +1826,4 @@ files = [
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10"
-content-hash = "d17ac06fe1b80141eff0fb005445ac6c1432e86954a3a1e9d788d1cc082044fc"
+content-hash = "5bcdc1fd348789fe9b238969027f166f592bc920ce7a3104598387e37c53d5c4"

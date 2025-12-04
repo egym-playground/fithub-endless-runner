@@ -10,6 +10,7 @@ from bodytracking.rendering import render_results
 from websocket_server import WebSocketServer
 
 from bodytracking.bodytracking_evaluation import evaluate_directions
+
 class CaptureThread(threading.Thread):
     ret = None
     isRunning = False
