@@ -18,7 +18,7 @@ class DirectionEvaluator:
         self.MIN_CONFIDENCE = global_vars.PERSON_MINIMUM_THRESHOLD  # Minimum detection confidence
         self.START_RATIO = 0.2  # Start gesture threshold ratio
         self.SQUAT_DEPTH_RATIO = 0.25  # Squat depth should be 25% of person height
-        self.HORIZONTAL_RATIO = 1.25
+        self.HORIZONTAL_RATIO = 1.5
 
         # Smoothing window
         self.position_history = []
