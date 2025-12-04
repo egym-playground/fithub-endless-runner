@@ -1,3 +1,5 @@
+from pickle import GLOBAL
+
 import cv2
 import time
 from bodytracking import global_vars
@@ -20,6 +22,7 @@ def render_results(ti ,results, directions):
                     continue
                 cv2.putText(annotated_frame, f"Movement: {direction}", (10, 30 + 30 * list(directions.keys()).index(direction)),
                                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+
             cv2.imshow('Body Tracking', annotated_frame)
             cv2.waitKey(1)
         except Exception as e:
