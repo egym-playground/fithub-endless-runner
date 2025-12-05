@@ -113,7 +113,7 @@ class DirectionEvaluator:
         right_distance = self.keypoints.right_shoulder[1] - self.keypoints.right_wrist[1]
 
         left_above = left_distance > self.get_dynamic_start_threshold()
-        right_above = right_distance > self.get_dynamic_jump_velocity()
+        right_above = right_distance > self.get_dynamic_start_threshold()
 
         return left_above and right_above
 
